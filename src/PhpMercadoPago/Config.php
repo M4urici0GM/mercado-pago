@@ -1,17 +1,16 @@
 <?php
 
 namespace PhpMercadoPago;
-
 class Config {
 
-    protected $AccessToken;
+    protected static $AccessToken;
 
-    public function getAccessToken() {
-        return $this->AccessToken;
+    public static function getAccessToken() {
+        return self::AccessToken;
     }
 
     public function setAccessToken($accessToken) {
-        $this->AccessToken = $accessToken;
+        self::$AccessToken = $accessToken;
     }
 
 }

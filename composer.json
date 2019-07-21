@@ -1,6 +1,8 @@
 {
     "name": "m4urici0gm/mercado-pago",
     "description": "API de integracao com MercadoPago",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "authors": [
         {
             "name": "Mauricio Barbosa",

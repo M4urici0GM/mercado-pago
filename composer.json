@@ -1,0 +1,21 @@
+{
+    "name": "m4urici0gm/mercado-pago",
+    "description": "API de integracao com MercadoPago",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Mauricio Barbosa",
+            "email": "mgbftw@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "mercadopago/dx-php": "dev-master"
+    },
+    "autoload": {
+        "psr-0": {
+            "PhpMercadoPago": "/src"
+        }
+    }
+}

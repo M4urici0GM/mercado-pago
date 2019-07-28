@@ -1,12 +1,8 @@
 <?php
 
-namespace PhpMercadoPago;
-
 use PhpMercadoPago\Config;
 use MercadoPago\SDK;
 use MercadoPago\Payment;
-use PhpMercadoPago\Models\Pagador;
-use PhpMercadoPago\Models\Error;
 
 class Pagamento {
 
@@ -14,7 +10,7 @@ class Pagamento {
     public const PAGAMENTO_CARTAO = 2;
 
     protected $config;
-    protected $transaction_amount;
+    protected $transation_amount;
     protected $shipping_amount;
     protected $payer;
     protected $description;
@@ -22,47 +18,38 @@ class Pagamento {
     protected $payment_type;
     protected $payment_installments;
     protected $payment_card_token;
-    protected $payment;
+    private $payment;
 
     public function __construct() {
         SDK::setAccessToken(Config::getAccessToken());
         $this->payment = new Payment();
-        $this->payment->notification_url = Config::getNotificationsUrl();
     }
     
     public function create() {
-        if(true) {    //Fazendo a checagem dos campos
-            //Aqui definimos o valor do pagamento (Obrigatorio)
-            $this->payment->transaction_amount = round($this->transaction_amount, 2);
-            //Definimos a descricao
+        if($this->checkFields()) {
+            $this->payment->transation_amount = round($this->transation_amount, 2);
             $this->payment->description = $this->description;
-            //O Valor do frete, caso nao tenha, defina como 0
             $this->payment->shipping_amount = round($this->shipping_amount, 2);
-
             if ($this->payment_type == 1){
-                //Boleto so tem uma parcela
                 $this->payment->installments = 1;
             } else if ($this->payment_type == 2) {
-                //Aqui definimos quantas parcelas a compra sera parcelada no cartao
                 $this->payment->installments = $this->payment_installments;
-
-                //Esse token precisa ser gerado no front-end junto a API JS do mercadolivre
                 $this->payment->token = $this->payment_card_token;
-
-                //ID de pagamanto, visa, mastercard, etc.. (tambem passado via frontend)
-                //Aparamente, Boletos nao precisa passsar esse parametro. (Testar melhor)
                 $this->payment->payment_method_id = $this->payment_method_id;    
             }
-
-            //Aqui passaremos alguns dados do pagador, lembrando que, caso o email ja 
-            //exista no mercadopago, ele automaticamente pegara as informacoes constadas la.
+            $this->payment->order = array(
+                'type' => 'mercadopago',
+                'id'   => $this->order_id
+            );
             $this->payment->payer = array(
+                'type'           => 'customer',
                 'first_name'     => $this->payer->getNome(),
                 'last_name'      => $this->payer->getSobrenome(),
-                'email'     => $this->payer->getEmail(),
-
-                //De novo, caso o email exista no sistema, ele substituria o 'address' e o 'identification'
-                'address'        => array( 
+                'phone'          => array(
+                    'area_code' => $this->payer->getTelefone()->getDDD(),
+                    'number'    => $this->payer->getTelefone()->getNumero(),
+                ),
+                'address'        => array(
                     'zip_code'      => $this->payer->getEndereco()->getCEP(),
                     'street_name'   => $this->payer->getEndereco()->getLogradouro(),
                     'street_number' => $this->payer->getEndereco()->getNumero() 
@@ -70,37 +57,67 @@ class Pagamento {
                 'identification' => array(
                     'type'   => $this->payer->getIdentidade()->getTipo(),
                     'number' => $this->payer->getIdentidade()->getNumero()
-                )
+                ),
+                'email'     => $this->payer->getEmail(),
             );
-
-            $this->payment->additional_info = array(
-                'shipments' => array(
-                    //Endereco de entrega do pedido
-                    'receiver_address' => array(
+            $this->payment->aditional_info = array(
+                'payer' => array(
+                    'first_name'     => $this->payer->getNome(),
+                    'last_name'      => $this->payer->getSobrenome(),
+                    'phone'          => array(
+                        'area_code' => $this->payer->getTelefone()->getDDD(),
+                        'number'    => $this->payer->getTelefone()->getNumero(),
+                    ),
+                    'address'        => array(
                         'zip_code'      => $this->payer->getEndereco()->getCEP(),
                         'street_name'   => $this->payer->getEndereco()->getLogradouro(),
                         'street_number' => $this->payer->getEndereco()->getNumero() 
-                    )
+                    ),
+                    'identification' => array(
+                        'type'   => $this->payer->getIdentidade()->getTipo(),
+                        'number' => $this->payer->getIdentidade()->getNumero()
+                    ),
+                    'email'     => $this->payer->getEmail(),
                 ),
-                //TODO: Items do pedido
-                'items' => array()
+                'items' => $this->items,
+                'shipments' => array(
+                    'receiver_address' => array(
+                        'zip_code'      => $this->payer->getEndereco()->getCEP(),
+                        'street_name'   => $this->payer->getEndereco()->getLogradouro(),
+                        'state_name'    => $this->payer->getEndereco()->getEstado(),
+                        'city_name'     => $this->payer->getEndereco()->getCityName(),
+                        'street_number' => $this->payer->getEndereco()->getNumero()
+                    )
+                )
             );
-            
-            //Aqui finalizamos a configuracao e obtemos a resposta final da API dos correios
-            $this->payment->save();
+            $this->payer = array(
 
-            //Aqui eu armazeno os dados retornados num array, afim de checar se existe, erros, etc..
-            $returnData = $this->payment->getAttributes();
-            
-            if ($returnData['error'] !== null){
-                return new Error($returnData['error']);
-            }
-            
-            //TODO: Implementar a classe de resposta, para boletos e pagamento com cartoes.
+            );
+            $this->payment->save();
+            return $this->payment;
         }
     }
 
-    public function setTipo($pagamentoType) {
+    public function setItems($items){
+        $_items = [];
+        foreach($items as $item){
+            $_items[] = array(
+                'id'          => $item->id,
+                'title'       => $item->title,
+                'description' => $item->description,
+                'category_id' => $item->category,
+                'quantity'    => $item->quantity,
+                'unit_price'  => $item->price
+            );
+        }
+        $this->items = $_items;
+    }
+
+    public function setPedidoId($pedido_id){
+        $this->order_id = $pedido_id;
+    }
+
+    public function setTipo(Pagamento $pagamentoType) {
         $this->payment_type = $pagamentoType;
         if ($pagamentoType == 1)
             $this->payment->payment_method_id = 'bolbradesco';
@@ -110,21 +127,12 @@ class Pagamento {
         $this->payment_method_id = $payment_id;
     }
 
-    public function setParcelas($parcelas) {
-        $this->payment_installments = $parcelas;
-    }
-
     public function setPagador(Pagador $payer){
         $this->payer = $payer;
     }
 
-    public function setToken($token) {
-        $this->payment_card_token = $token;
-    }
-
-
     public function setValor($amount) {
-        $this->transaction_amount = $amount;
+        $this->transation_amount = $amount;
     }
 
   
@@ -137,7 +145,7 @@ class Pagamento {
     }
 
     private function checkFields() {
-        if (!$this->transaction_amount){
+        if (!$this->transation_amount){
             throw new \Exception("O valor da transacao eh obrigatorio!");
             return false;
         } else if (!$this->payer){

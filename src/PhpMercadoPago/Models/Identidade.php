@@ -12,7 +12,7 @@ class Identidade {
     }
 
     public function setNumero($numero) {
-        $this->number = $numero;
+        $this->numero = $numero;
     } 
 
     public function getTipo(){

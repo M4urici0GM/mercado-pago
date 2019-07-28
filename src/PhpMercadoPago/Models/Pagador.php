@@ -57,7 +57,7 @@ class Pagador {
     }
 
     public function getEndereco(){
-        return $this->address;
+        return $this->endereco;
     }
 
 }

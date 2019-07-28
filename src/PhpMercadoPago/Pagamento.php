@@ -1,5 +1,7 @@
 <?php
 
+namespace PhpMercadoPago;
+
 use PhpMercadoPago\Config;
 use MercadoPago\SDK;
 use MercadoPago\Payment;

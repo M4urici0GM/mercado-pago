@@ -20,6 +20,7 @@ class Config {
     }
 
     public static function setAccessToken($accessToken) {
+        \MercadoPago\SDK::setAccessToken($accessToken);
         self::$AccessToken = $accessToken;
     }
 

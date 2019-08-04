@@ -5,6 +5,7 @@ namespace PhpMercadoPago;
 use PhpMercadoPago\Config;
 use MercadoPago\SDK;
 use MercadoPago\Payment;
+use PhpMercadoPago\Models\Pagador;
 
 class Pagamento {
 
@@ -26,10 +27,10 @@ class Pagamento {
         SDK::setAccessToken(Config::getAccessToken());
         $this->payment = new Payment();
     }
-    
+
     public function create() {
         if($this->checkFields()) {
-            $this->payment->transation_amount = round($this->transation_amount, 2);
+            $this->payment->transaction_amount = round($this->transation_amount, 2);
             $this->payment->description = $this->description;
             $this->payment->shipping_amount = round($this->shipping_amount, 2);
             if ($this->payment_type == 1){
@@ -37,32 +38,24 @@ class Pagamento {
             } else if ($this->payment_type == 2) {
                 $this->payment->installments = $this->payment_installments;
                 $this->payment->token = $this->payment_card_token;
-                $this->payment->payment_method_id = $this->payment_method_id;    
+                $this->payment->payment_method_id = $this->payment_method_id;
             }
-            $this->payment->order = array(
-                'type' => 'mercadopago',
-                'id'   => $this->order_id
-            );
             $this->payment->payer = array(
                 'type'           => 'customer',
                 'first_name'     => $this->payer->getNome(),
                 'last_name'      => $this->payer->getSobrenome(),
-                'phone'          => array(
-                    'area_code' => $this->payer->getTelefone()->getDDD(),
-                    'number'    => $this->payer->getTelefone()->getNumero(),
-                ),
-                'address'        => array(
-                    'zip_code'      => $this->payer->getEndereco()->getCEP(),
-                    'street_name'   => $this->payer->getEndereco()->getLogradouro(),
-                    'street_number' => $this->payer->getEndereco()->getNumero() 
-                ),
                 'identification' => array(
                     'type'   => $this->payer->getIdentidade()->getTipo(),
                     'number' => $this->payer->getIdentidade()->getNumero()
                 ),
                 'email'     => $this->payer->getEmail(),
+                'address'   => array(
+                    'zip_code'      => $this->payer->getEndereco()->getCEP(),
+                    'street_name'   => $this->payer->getEndereco()->getLogradouro(),
+                    'street_number' => $this->payer->getEndereco()->getNumero()
+                )
             );
-            $this->payment->aditional_info = array(
+            $this->payment->additional_info = array(
                 'payer' => array(
                     'first_name'     => $this->payer->getNome(),
                     'last_name'      => $this->payer->getSobrenome(),
@@ -73,13 +66,8 @@ class Pagamento {
                     'address'        => array(
                         'zip_code'      => $this->payer->getEndereco()->getCEP(),
                         'street_name'   => $this->payer->getEndereco()->getLogradouro(),
-                        'street_number' => $this->payer->getEndereco()->getNumero() 
-                    ),
-                    'identification' => array(
-                        'type'   => $this->payer->getIdentidade()->getTipo(),
-                        'number' => $this->payer->getIdentidade()->getNumero()
-                    ),
-                    'email'     => $this->payer->getEmail(),
+                        'street_number' => $this->payer->getEndereco()->getNumero()
+                    )
                 ),
                 'items' => $this->items,
                 'shipments' => array(
@@ -87,17 +75,22 @@ class Pagamento {
                         'zip_code'      => $this->payer->getEndereco()->getCEP(),
                         'street_name'   => $this->payer->getEndereco()->getLogradouro(),
                         'state_name'    => $this->payer->getEndereco()->getEstado(),
-                        'city_name'     => $this->payer->getEndereco()->getCityName(),
+                        'city_name'     => $this->payer->getEndereco()->getCidade(),
                         'street_number' => $this->payer->getEndereco()->getNumero()
                     )
                 )
             );
-            $this->payer = array(
-
-            );
-            $this->payment->save();
+             $this->payment->save();
             return $this->payment;
         }
+    }
+
+    public function setToken($token) {
+        $this->payment_card_token = $token;
+    }
+
+    public function setParcelas($parcelas) {
+        $this->payment_installments = $parcelas;
     }
 
     public function setItems($items){
@@ -108,7 +101,7 @@ class Pagamento {
                 'title'       => $item->title,
                 'description' => $item->description,
                 'category_id' => $item->category,
-                'quantity'    => $item->quantity,
+                'quantity'    => $item->qtd,
                 'unit_price'  => $item->price
             );
         }
@@ -119,7 +112,7 @@ class Pagamento {
         $this->order_id = $pedido_id;
     }
 
-    public function setTipo(Pagamento $pagamentoType) {
+    public function setTipo($pagamentoType) {
         $this->payment_type = $pagamentoType;
         if ($pagamentoType == 1)
             $this->payment->payment_method_id = 'bolbradesco';
@@ -147,6 +140,7 @@ class Pagamento {
     }
 
     private function checkFields() {
+	return true;
         if (!$this->transation_amount){
             throw new \Exception("O valor da transacao eh obrigatorio!");
             return false;

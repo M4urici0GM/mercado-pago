@@ -31,5 +31,4 @@ class Telefone {
     public function getExtension(){
         return $this->extension;
     }
-
 }

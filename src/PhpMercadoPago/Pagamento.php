@@ -6,6 +6,7 @@ use PhpMercadoPago\Config;
 use MercadoPago\SDK;
 use MercadoPago\Payment;
 use PhpMercadoPago\Models\Pagador;
+use Exception;
 
 class Pagamento {
 
@@ -21,11 +22,15 @@ class Pagamento {
     protected $payment_type;
     protected $payment_installments;
     protected $payment_card_token;
+    protected $payment_id;
     private $payment;
+    private $mpWebToken;
+    private $notificationUrl;
 
     public function __construct() {
         SDK::setAccessToken(Config::getAccessToken());
         $this->payment = new Payment();
+        $this->notificationUrl = Config::getNotificationsUrl();
     }
 
     public function create() {
@@ -33,6 +38,7 @@ class Pagamento {
             $this->payment->transaction_amount = round($this->transation_amount, 2);
             $this->payment->description = $this->description;
             $this->payment->shipping_amount = round($this->shipping_amount, 2);
+            $this->payment->notification_url = "{$this->notificationUrl}?webtoken={$this->mpWebToken}";
             if ($this->payment_type == 1){
                 $this->payment->installments = 1;
             } else if ($this->payment_type == 2) {
@@ -80,13 +86,28 @@ class Pagamento {
                     )
                 )
             );
-             $this->payment->save();
+            $this->payment->save();
             return $this->payment;
         }
     }
 
+    public function getPayment() {
+        if (!$this->payment_id)
+            throw new Exception("Set the ID with setPaymentId(id) first.");
+        $payment = \MercadoPago\Payment.find_by_id($this->payment_id);
+        return $payment;
+    }
+
+    public function setPaymentId($paymentId){
+        $this->payment_id = $paymentId;
+    }
+
     public function setToken($token) {
         $this->payment_card_token = $token;
+    }
+
+    public function setWebhookToken($webtoken) {
+        $this->mpWebToken = $webtoken;
     }
 
     public function setParcelas($parcelas) {

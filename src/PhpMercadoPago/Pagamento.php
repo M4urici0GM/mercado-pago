@@ -94,7 +94,7 @@ class Pagamento {
     public function getPayment() {
         if (!$this->payment_id)
             throw new Exception("Set the ID with setPaymentId(id) first.");
-        $payment = \MercadoPago\Payment.find_by_id($this->payment_id);
+        $payment = \MercadoPago\Payment::find_by_id($this->payment_id);
         return $payment;
     }
 
